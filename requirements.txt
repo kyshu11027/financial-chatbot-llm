@@ -1,4 +1,5 @@
 fastapi==0.109.2
 uvicorn==0.27.1
 pydantic==2.6.1
-websockets==12.0 
+httpx==0.25.1
+confluent-kafka==2.2.0
