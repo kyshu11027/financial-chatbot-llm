@@ -106,7 +106,7 @@ async def process_message(message):
                 "message": chunk_text,
                 "last_message": False
             }
-            producer.produce(AI_RESPONSE_TOPIC, value=json.dumps(small_chunk))
+            producer.produce(AI_RESPONSE_TOPIC, key=conversation_id, value=json.dumps(small_chunk))
             producer.poll(0)  # Let producer handle delivery in background (non-blocking)
 
             logger.info(f"Queued chunk to Kafka: {chunk}")
