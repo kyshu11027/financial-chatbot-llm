@@ -2,6 +2,6 @@ fastapi==0.109.2
 uvicorn==0.27.1
 pydantic==2.6.1
 confluent-kafka==2.9.0
-langchain
-langchain-openai
+langchain==0.3.56
+langchain-openai==0.3.14
 pymongo==4.12.0

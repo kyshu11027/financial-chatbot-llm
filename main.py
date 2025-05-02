@@ -32,7 +32,7 @@ producer = Producer({
     'sasl.password': os.getenv('KAFKA_API_SECRET'),
 })
 
-client = MongoClient(os.getenv('MONGO_URI'), ssl=True)
+client = MongoClient(os.getenv('MONGO_URI'), tls=True)
 db = client["conversations"]
 context_collection = db[CONTEXT_COLLECTION_NAME]
 messages_collection = db[MESSAGE_COLLECTION_NAME]
