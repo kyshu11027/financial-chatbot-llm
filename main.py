@@ -11,6 +11,7 @@ from langchain_core.messages import HumanMessage, AIMessage
 from pymongo import MongoClient, errors
 import time
 from dotenv import load_dotenv
+import certifi
 
 load_dotenv()
 # Set up logging
@@ -35,7 +36,7 @@ producer = Producer({
 })
 
 
-client = MongoClient(os.getenv("MONGODB_URI"), tls=True)
+client = MongoClient(os.getenv("MONGODB_URI"), tls=True, tlsCAFile=certifi.where())
 db = client["conversations"]
 context_collection = db[CONTEXT_COLLECTION_NAME]
 messages_collection = db[MESSAGE_COLLECTION_NAME]
