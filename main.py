@@ -10,7 +10,9 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage
 from pymongo import MongoClient, errors
 import time
+from dotenv import load_dotenv
 
+load_dotenv()
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -32,7 +34,8 @@ producer = Producer({
     'sasl.password': os.getenv('KAFKA_API_SECRET'),
 })
 
-client = MongoClient(os.getenv('MONGO_URI'), tls=True)
+
+client = MongoClient(os.getenv("MONGODB_URI"), tls=True)
 db = client["conversations"]
 context_collection = db[CONTEXT_COLLECTION_NAME]
 messages_collection = db[MESSAGE_COLLECTION_NAME]
