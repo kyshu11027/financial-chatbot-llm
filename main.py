@@ -189,6 +189,7 @@ async def get_context(conversation_id):
 
         # Format context
         context = f"""
+            My name is {context_doc['name']}.
             I make {context_doc['income']} dollars a month. 
             I want to save {context_doc['savings_goal']} a month. 
             Here is a list of transactions I have made in the last 30 days:
