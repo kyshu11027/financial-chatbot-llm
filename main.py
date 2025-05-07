@@ -183,7 +183,7 @@ async def get_context(conversation_id):
                 'amount': t['amount'],
                 'name': t['name'],
                 'merchant': t.get('merchantname', ''),
-                'categories': t.get('category', []),
+                'categories': t.get('category') or [],
                 'pending': t['pending'],
             })
 
