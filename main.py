@@ -26,6 +26,11 @@ GROUP_ID = "message_consumer"
 CONTEXT_COLLECTION_NAME = "contexts"
 MESSAGE_COLLECTION_NAME = "messages" 
 
+with open('system_prompt.txt', 'r') as file:
+    SYSTEM_PROMPT = file.read()
+    print(SYSTEM_PROMPT)
+
+
 # Global variables
 producer = Producer({
     'bootstrap.servers': os.getenv('KAFKA_BOOTSTRAP_SERVERS'),
@@ -75,7 +80,7 @@ async def health_check():
 
 async def process_message(message):
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "Given the following transaction history and financial information, answer the user's questions or generate insights based on this data:\n{context}"),
+        ("system", SYSTEM_PROMPT),
         MessagesPlaceholder(variable_name="chat_history"),  # Include history here
         ("user", "{input}"),
     ])

@@ -22,7 +22,6 @@ pip install -r requirements.txt
 To start the server, run:
 
 ```bash
-export SSL_CERT_FILE=$(python3 -m certifi)
 uvicorn main:app --reload
 ```
 
