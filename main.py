@@ -28,7 +28,6 @@ MESSAGE_COLLECTION_NAME = "messages"
 
 with open('system_prompt.txt', 'r') as file:
     SYSTEM_PROMPT = file.read()
-    print(SYSTEM_PROMPT)
 
 
 # Global variables
