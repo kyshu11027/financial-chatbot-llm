@@ -133,7 +133,7 @@ async def process_message(message):
     try:
         producer.produce(AI_RESPONSE_TOPIC, value=json.dumps(final_chunk))
         producer.poll(0)
-        logger.info(f"Queued final [DONE] chunk to Kafka.")
+        logger.info(f"Queued final chunk to Kafka.")
     except Exception as e:
         logger.error(f"Error sending final message to Kafka: {e}")
 
