@@ -79,7 +79,7 @@ async def health_check():
 
 async def process_message(message):
     prompt = ChatPromptTemplate.from_messages([
-        ("system", SYSTEM_PROMPT),
+        ("system", SYSTEM_PROMPT + "\n{context}"),
         MessagesPlaceholder(variable_name="chat_history"),  # Include history here
         ("user", "{input}"),
     ])
