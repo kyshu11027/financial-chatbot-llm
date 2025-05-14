@@ -112,7 +112,8 @@ async def process_message(message):
             small_chunk = {
                 **message_value,
                 "message": chunk_text,
-                "last_message": False
+                "last_message": False,
+                "error": False
             }
             producer.produce(AI_RESPONSE_TOPIC, key=conversation_id, value=json.dumps(small_chunk))
             producer.poll(0)  # Let producer handle delivery in background (non-blocking)
@@ -121,13 +122,26 @@ async def process_message(message):
 
     except Exception as e:
         logger.error(f"Error streaming LLM response: {e}")
+        error_chunk = {
+            **message_value,
+            "message": "",
+            "last_message": True,
+            "error": True,
+        }
+
+        try:
+            producer.produce(AI_RESPONSE_TOPIC, key=conversation_id, value=json.dumps(error_chunk))
+            producer.flush()  # Ensure the error message gets delivered
+        except Exception as produce_error:
+            logger.error(f"Failed to send error message to Kafka: {produce_error}")
         return
 
     # Send final empty message signaling "done"
     final_chunk = {
         **message_value,
         "message": "",
-        "last_message": True
+        "last_message": True,
+        "error": False
     }
 
     try:
