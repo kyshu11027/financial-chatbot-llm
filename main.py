@@ -212,12 +212,23 @@ async def get_context(conversation_id):
             I want to save {context_doc['savings_goal']} a month. 
             Here is a list of transactions I have made in the last 30 days:
         """
+
         for t in transactions:
             context += f"""
                 Transaction {t['transaction_id']}: {t['name']} at {t['merchant']} on {t['date']} for ${t['amount']}. 
                 Categories: {', '.join(t['categories'])}. 
                 Pending: {t['pending']}\n
             """
+
+        context += "Here is a list of my monthly expenses:"
+        for monthly_expense in context_doc['additional_monthly_expenses']:
+            context += f"""
+                Name: {monthly_expense['name']}
+                Amount: {monthly_expense['amount']}
+            """
+            if monthly_expense['description'] != "":
+                context += f'Description: {monthly_expense['description']}'
+                
         return context
     except Exception as e:
         logger.error(f"Error retrieving context for conversation_id {conversation_id}: {e}")
