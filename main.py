@@ -1,70 +1,28 @@
 from fastapi import FastAPI
-from confluent_kafka import Consumer, Producer
 from contextlib import asynccontextmanager
 import asyncio
-import os
 import json
-import logging
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.messages import HumanMessage, AIMessage
-from pymongo import MongoClient, errors
-import time
-from dotenv import load_dotenv
-import certifi
+from config import logger, AI_RESPONSE_TOPIC
+from database import Database
+from kafka_client import KafkaClient
+from llm_service import LLMService
 
-load_dotenv()
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Set up constants
-OPENAI_KEY = os.getenv('OPENAI_API_KEY')
-USER_MESSAGE_TOPIC = "user_message"
-AI_RESPONSE_TOPIC = "ai_response"
-GROUP_ID = "message_consumer"
-CONTEXT_COLLECTION_NAME = "contexts"
-MESSAGE_COLLECTION_NAME = "messages" 
-
+# Load system prompt
 with open('system_prompt.txt', 'r') as file:
     SYSTEM_PROMPT = file.read()
 
-
-# Global variables
-producer = Producer({
-    'bootstrap.servers': os.getenv('KAFKA_BOOTSTRAP_SERVERS'),
-    'security.protocol': 'SASL_SSL',
-    'sasl.mechanisms': 'PLAIN',
-    'sasl.username': os.getenv('KAFKA_API_KEY'),
-    'sasl.password': os.getenv('KAFKA_API_SECRET'),
-})
-
-
-client = MongoClient(os.getenv("MONGODB_URI"), tls=True, tlsCAFile=certifi.where())
-db = client["conversations"]
-context_collection = db[CONTEXT_COLLECTION_NAME]
-messages_collection = db[MESSAGE_COLLECTION_NAME]
-
-# MongoDB ping check function
-async def check_mongo_connection():
-    try:
-        # Attempt to ping the MongoDB server
-        client.admin.command('ping')
-        logger.info("MongoDB connection successful!")
-    except errors.PyMongoError as e:
-        logger.error(f"MongoDB connection failed: {e}")
-        raise Exception(f"MongoDB connection failed: {e}")
-
-llm = ChatOpenAI(api_key=OPENAI_KEY, streaming=True, temperature=0.7)
+# Initialize services
+db = Database()
+kafka = KafkaClient()
+llm_service = LLMService()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await check_mongo_connection()  # Check MongoDB connection during startup
-
-    # Startup event
+    await db.check_connection()  # Check MongoDB connection during startup
+    kafka.setup_consumer()
     asyncio.create_task(consume_messages())
-    yield  # This will pause here until the app is shutting down
-    # Shutdown event can be handled here if needed
+    yield
+    kafka.close()
 
 app = FastAPI(
     title="Finance Chatbot API",
@@ -75,36 +33,25 @@ app = FastAPI(
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}    
+    return {"status": "healthy"}
 
 async def process_message(message):
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", SYSTEM_PROMPT + "\n{context}"),
-        MessagesPlaceholder(variable_name="chat_history"),  # Include history here
-        ("user", "{input}"),
-    ])
-    chain = prompt | llm
-
     message_decoded = message.value().decode('utf-8')
     message_value = json.loads(message_decoded)
     msg = message_value['message']
     conversation_id = message_value['conversation_id']
-
     full_message = ""
 
     try:
-        # Pull context and chat history from MongoDB
-        context = await get_context(conversation_id)
-        chat_history = await get_history(conversation_id)
+        # Get context and chat history
+        context = await db.get_context(conversation_id)
+        chat_history = await db.get_history(conversation_id)
     except Exception as e:
         logger.error(f"Error retrieving context or history for conversation {conversation_id}: {e}")
         return
 
     try:
-        response_stream = chain.stream({
-            "context": context,
-            "chat_history": chat_history, 
-            "input": msg})
+        response_stream = await llm_service.process_message(msg, context, chat_history, SYSTEM_PROMPT)
 
         for chunk in response_stream:
             chunk_text = chunk.text()
@@ -115,10 +62,8 @@ async def process_message(message):
                 "last_message": False,
                 "error": False
             }
-            producer.produce(AI_RESPONSE_TOPIC, key=conversation_id, value=json.dumps(small_chunk))
-            producer.poll(0)  # Let producer handle delivery in background (non-blocking)
-
-            logger.info(f"Queued chunk to Kafka: {chunk}")
+            kafka.produce_message(AI_RESPONSE_TOPIC, conversation_id, small_chunk)
+            logger.debug(f"Processed chunk: {chunk_text}")
 
     except Exception as e:
         logger.error(f"Error streaming LLM response: {e}")
@@ -128,12 +73,7 @@ async def process_message(message):
             "last_message": True,
             "error": True,
         }
-
-        try:
-            producer.produce(AI_RESPONSE_TOPIC, key=conversation_id, value=json.dumps(error_chunk))
-            producer.flush()  # Ensure the error message gets delivered
-        except Exception as produce_error:
-            logger.error(f"Failed to send error message to Kafka: {produce_error}")
+        kafka.produce_error_message(AI_RESPONSE_TOPIC, conversation_id, error_chunk)
         return
 
     # Send final empty message signaling "done"
@@ -145,150 +85,23 @@ async def process_message(message):
     }
 
     try:
-        producer.produce(AI_RESPONSE_TOPIC, value=json.dumps(final_chunk))
-        producer.poll(0)
-        logger.info(f"Queued final chunk to Kafka.")
+        kafka.produce_message(AI_RESPONSE_TOPIC, conversation_id, final_chunk)
+        logger.debug("Queued final chunk to Kafka")
     except Exception as e:
         logger.error(f"Error sending final message to Kafka: {e}")
 
     try:
-        # Save the full AI message to MongoDB
-        await save_ai_message_to_db(conversation_id=conversation_id, message=full_message)
+        await db.save_ai_message(conversation_id=conversation_id, message=full_message)
         logger.info(f"Message saved to DB for conversation {conversation_id}")
     except Exception as e:
         logger.error(f"Error saving AI message to DB: {e}")
 
 async def consume_messages():
-    consumer = Consumer({
-        'bootstrap.servers': os.getenv('KAFKA_BOOTSTRAP_SERVERS'),
-        'security.protocol': 'SASL_SSL',
-        'sasl.mechanisms': 'PLAIN',
-        'sasl.username': os.getenv('KAFKA_API_KEY'),
-        'sasl.password': os.getenv('KAFKA_API_SECRET'),
-        'session.timeout.ms': '45000',
-        'client.id': 'python-client-1',
-        'group.id': GROUP_ID,
-        'auto.offset.reset': 'latest',
-    })
-    consumer.subscribe([USER_MESSAGE_TOPIC])
-    logger.info("Kafka consumer started, waiting for messages...")
-
     while True:
         try:
-            msg = consumer.poll(1.0)
-            if msg is None:
-                continue
-            if msg.error():
-                logger.error(f"Consumer error: {msg.error()}")
-                continue
-            await process_message(msg)
-
+            msg = kafka.poll_message()
+            if msg is not None:
+                await process_message(msg)
         except Exception as e:
             logger.error(f"Error in message consumption: {e}")
-
-async def get_context(conversation_id):
-    try:
-        context_doc = context_collection.find_one({"conversation_id": conversation_id})
-        if not context_doc:
-            raise Exception(f"No context found for conversation_id: {conversation_id}")
-        
-        # Normalize transactions
-        transactions = []
-        for t in context_doc.get('transactions', []):
-            transactions.append({
-                'transaction_id': t['transactionid'],
-                'date': t['date'],
-                'amount': t['amount'],
-                'name': t['name'],
-                'merchant': t.get('merchantname', ''),
-                'categories': t.get('category') or [],
-                'pending': t['pending'],
-            })
-
-        accounts = []
-
-        for a in context_doc.get('accounts', []): 
-            balance = a.get('balances', {})
-
-            normalized_balance = {
-                'available': balance.get('available', None),
-                'current': balance.get('current', 0.0),
-                'limit': balance.get('limit', None),
-                'iso_currency_code': balance.get('iso_currency_code', ''),
-            }
-
-            normalized_account = {
-                'account_id': a.get('account_id', ''),
-                'balances': normalized_balance,
-                'mask': a.get('mask', ''),
-                'name': a.get('name', 'Unnamed Account'),
-                'official_name': a.get('official_name', 'Unnamed Account'),
-                'subtype': a.get('subtype', ''),
-                'type': a.get('type', ''),
-            }
-
-            accounts.append(normalized_account)
-
-        # Format context
-        context = f"""
-            My name is {context_doc['name']}.
-            I make {context_doc['income']} dollars a month. 
-            I want to save {context_doc['savings_goal']} a month. 
-            Here is a list of transactions I have made in the last 30 days:
-        """
-
-        for t in transactions:
-            context += f"""
-                Transaction {t['transaction_id']}: {t['name']} at {t['merchant']} on {t['date']} for ${t['amount']}. 
-                Categories: {', '.join(t['categories'])}. 
-                Pending: {t['pending']}\n
-            """
-
-        context += "Here is a list of my current account balances:"
-        for account in accounts:
-            context += f"""
-                {account['official_name']} : {account['balances']['current']} {account['balances']['iso_currency_code']}
-            """
-
-        context += "Here is a list of my monthly expenses:"
-        for monthly_expense in context_doc['additional_monthly_expenses']:
-            context += f"""
-                Name: {monthly_expense['name']}
-                Amount: {monthly_expense['amount']}
-            """
-            if monthly_expense['description'] != "":
-                context += f'Description: {monthly_expense['description']}'
-                
-        return context
-    except Exception as e:
-        logger.error(f"Error retrieving context for conversation_id {conversation_id}: {e}")
-        raise
-
-async def get_history(conversation_id):
-    try:
-        chat_history = list(messages_collection.find({"conversation_id": conversation_id}).sort("timestamp", 1))
-        if not chat_history:
-            raise Exception(f"No chat history found for conversation_id: {conversation_id}")
-
-        formatted_history = []
-        for message in chat_history:
-            if message['sender'] == "UserMessage":
-                formatted_history.append(HumanMessage(content=message['message']))
-            else:
-                formatted_history.append(AIMessage(content=message['message']))
-        return formatted_history
-    except Exception as e:
-        logger.error(f"Error retrieving history for conversation_id {conversation_id}: {e}")
-        raise
-
-async def save_ai_message_to_db(conversation_id, message):
-    try:
-        messages_collection.insert_one({
-            "conversation_id": conversation_id,
-            "sender": "AIMessage",
-            "message": message,
-            "timestamp": int(time.time())
-        })
-    except Exception as e:
-        logger.error(f"Error saving message to MongoDB: {e}")
-        raise
+            await asyncio.sleep(1)  # Add delay to prevent tight loop on errors
