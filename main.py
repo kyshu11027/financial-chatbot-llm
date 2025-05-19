@@ -205,6 +205,30 @@ async def get_context(conversation_id):
                 'pending': t['pending'],
             })
 
+        accounts = []
+
+        for a in context_doc.get('accounts', []): 
+            balance = a.get('balances', {})
+
+            normalized_balance = {
+                'available': balance.get('available', None),
+                'current': balance.get('current', 0.0),
+                'limit': balance.get('limit', None),
+                'iso_currency_code': balance.get('iso_currency_code', ''),
+            }
+
+            normalized_account = {
+                'account_id': a.get('account_id', ''),
+                'balances': normalized_balance,
+                'mask': a.get('mask', ''),
+                'name': a.get('name', 'Unnamed Account'),
+                'official_name': a.get('official_name', 'Unnamed Account'),
+                'subtype': a.get('subtype', ''),
+                'type': a.get('type', ''),
+            }
+
+            accounts.append(normalized_account)
+
         # Format context
         context = f"""
             My name is {context_doc['name']}.
@@ -218,6 +242,12 @@ async def get_context(conversation_id):
                 Transaction {t['transaction_id']}: {t['name']} at {t['merchant']} on {t['date']} for ${t['amount']}. 
                 Categories: {', '.join(t['categories'])}. 
                 Pending: {t['pending']}\n
+            """
+
+        context += "Here is a list of my current account balances:"
+        for account in accounts:
+            context += f"""
+                {account['official_name']} : {account['balances']['current']} {account['balances']['iso_currency_code']}
             """
 
         context += "Here is a list of my monthly expenses:"
