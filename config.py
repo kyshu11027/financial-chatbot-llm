@@ -35,7 +35,7 @@ def setup_logging():
     # Configure root logger
     logging.basicConfig(
         level=getattr(logging, log_level),
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        format='[%(levelname)s] %(asctime)s |%(name)s| %(message)s'
     )
     
     # Set PyMongo's logger to WARNING level to reduce noise
