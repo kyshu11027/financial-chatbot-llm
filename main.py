@@ -38,11 +38,13 @@ async def health_check():
     return {"status": "healthy"}
 
 async def process_message(message):
+    # Parse the message object
     message_decoded = message.value().decode('utf-8')
     message_value = json.loads(message_decoded)
     msg = message_value['message']
     conversation_id = message_value['conversation_id']
-    full_message = ""
+    full_message = "" # Use this to track the full message to be saved to MongoDB
+    logger.info(f"Received message from Kafka: |{conversation_id}| {msg}")
 
     try:
         # Get context and chat history
@@ -106,7 +108,27 @@ async def consume_messages():
         try:
             msg = kafka.poll_message()
             if msg is not None:
-                await process_message(msg)
+                # Add timeout to process_message to prevent worker hanging
+                try:
+                    await asyncio.wait_for(process_message(msg), timeout=100)
+                except asyncio.TimeoutError:
+                    logger.error("Message processing timed out after 100 seconds")
+                    # Send error message to Kafka
+                    try:
+                        message_value = json.loads(msg.value().decode('utf-8'))
+                        error_chunk = {
+                            **message_value,
+                            "message": "Request timed out. Please try again.",
+                            "last_message": True,
+                            "error": True,
+                            "sender": "AIMessage"
+                        }
+                        kafka.produce_error_message(AI_RESPONSE_TOPIC, message_value['conversation_id'], error_chunk)
+                    except Exception as e:
+                        logger.error(f"Failed to send timeout error message: {e}")
+            else:
+                # If no message, yield control back to event loop
+                await asyncio.sleep(0.01)  # Small sleep to prevent tight loop
         except Exception as e:
             logger.error(f"Error in message consumption: {e}")
             await asyncio.sleep(1)  # Add delay to prevent tight loop on errors

@@ -1,6 +1,6 @@
 from confluent_kafka import Consumer, Producer
 import json
-from config import KAFKA_CONFIG, USER_MESSAGE_TOPIC, AI_RESPONSE_TOPIC, GROUP_ID, get_logger
+from config import KAFKA_CONFIG, USER_MESSAGE_TOPIC, GROUP_ID, get_logger
 
 logger = get_logger(__name__)
 
@@ -41,7 +41,7 @@ class KafkaClient:
 
     def poll_message(self):
         try:
-            msg = self.consumer.poll(1.0)
+            msg = self.consumer.poll(0.1)  # Reduced timeout to 100ms to be more responsive
             if msg is None:
                 return None
             if msg.error():

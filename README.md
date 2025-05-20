@@ -22,7 +22,7 @@ pip install -r requirements.txt
 To start the server, run:
 
 ```bash
-gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+gunicorn -c gunicorn.conf.py main:app
 ```
 
 The server will start at `http://localhost:8000`

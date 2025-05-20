@@ -6,19 +6,19 @@ logger = get_logger(__name__)
 
 class LLMService:
     def __init__(self):
-        self.llm = ChatOpenAI(api_key=OPENAI_KEY, streaming=True, temperature=0.7)
+        self.llm = ChatOpenAI(api_key=OPENAI_KEY, model=OPENAI_MODEL_NAME, streaming=True, temperature=0.7)
         self.prompt = ChatPromptTemplate.from_messages([
             ("system", "{system_prompt}\n{context}"),
             MessagesPlaceholder(variable_name="chat_history"),
             ("user", "{input}"),
         ])
 
-    def get_chain(self, system_prompt):
+    def get_chain(self):
         return self.prompt | self.llm
 
     async def process_message(self, message, context, chat_history, system_prompt):
         try:
-            chain = self.get_chain(system_prompt)
+            chain = self.get_chain()
             response_stream = chain.stream({
                 "system_prompt": system_prompt,
                 "context": context,
