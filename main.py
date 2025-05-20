@@ -62,7 +62,8 @@ async def process_message(message):
                 **message_value,
                 "message": chunk_text,
                 "last_message": False,
-                "error": False
+                "error": False,
+                "sender": "AIMessage"
             }
             kafka.produce_message(AI_RESPONSE_TOPIC, conversation_id, small_chunk)
             logger.debug(f"Processed chunk: {chunk_text}")
@@ -74,6 +75,7 @@ async def process_message(message):
             "message": "",
             "last_message": True,
             "error": True,
+            "sender": "AIMessage"
         }
         kafka.produce_error_message(AI_RESPONSE_TOPIC, conversation_id, error_chunk)
         return
@@ -83,7 +85,8 @@ async def process_message(message):
         **message_value,
         "message": "",
         "last_message": True,
-        "error": False
+        "error": False,
+        "sender": "AIMessage"
     }
 
     try:
