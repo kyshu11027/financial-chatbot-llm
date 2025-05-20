@@ -25,6 +25,7 @@ MESSAGE_COLLECTION_NAME = "messages"
 
 # OpenAI Configuration
 OPENAI_KEY = os.getenv('OPENAI_API_KEY')
+OPENAI_MODEL_NAME = "gpt-4-turbo"
 
 def setup_logging():
     # Get log level from environment variable, default to INFO
