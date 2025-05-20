@@ -1,10 +1,12 @@
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from config import OPENAI_KEY, OPENAI_MODEL_NAME, logger
+from config import OPENAI_KEY, OPENAI_MODEL_NAME, get_logger
+
+logger = get_logger(__name__)
 
 class LLMService:
     def __init__(self):
-        self.llm = ChatOpenAI(api_key=OPENAI_KEY, model=OPENAI_MODEL_NAME, streaming=True, temperature=0.7)
+        self.llm = ChatOpenAI(api_key=OPENAI_KEY, streaming=True, temperature=0.7)
         self.prompt = ChatPromptTemplate.from_messages([
             ("system", "{system_prompt}\n{context}"),
             MessagesPlaceholder(variable_name="chat_history"),

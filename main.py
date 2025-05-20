@@ -2,10 +2,12 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 import asyncio
 import json
-from config import logger, AI_RESPONSE_TOPIC
+from config import get_logger, AI_RESPONSE_TOPIC
 from database import Database
 from kafka_client import KafkaClient
 from llm_service import LLMService
+
+logger = get_logger(__name__)
 
 # Load system prompt
 with open('system_prompt.txt', 'r') as file:

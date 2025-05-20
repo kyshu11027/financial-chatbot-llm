@@ -1,7 +1,9 @@
 from pymongo import MongoClient, errors
 import certifi
 import time
-from config import MONGODB_URI, CONTEXT_COLLECTION_NAME, MESSAGE_COLLECTION_NAME, logger
+from config import MONGODB_URI, CONTEXT_COLLECTION_NAME, MESSAGE_COLLECTION_NAME, get_logger
+
+logger = get_logger(__name__)
 
 class Database:
     def __init__(self):

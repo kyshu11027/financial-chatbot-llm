@@ -27,29 +27,38 @@ MESSAGE_COLLECTION_NAME = "messages"
 OPENAI_KEY = os.getenv('OPENAI_API_KEY')
 OPENAI_MODEL_NAME = "gpt-4-turbo"
 
-def setup_logging():
+def get_logger(name):
+    """
+    Get a logger instance for a specific module.
+    Args:
+        name (str): The name of the module (usually __name__)
+    Returns:
+        logging.Logger: A configured logger instance
+    """
     # Get log level from environment variable, default to INFO
     log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
     if log_level not in ['DEBUG', 'INFO', 'WARNING', 'ERROR']:
         log_level = 'INFO'
     
-    # Configure root logger
-    logging.basicConfig(
-        level=getattr(logging, log_level),
-        format='[%(levelname)s] %(asctime)s |%(name)s| %(message)s'
-    )
+    # Configure root logger if not already configured
+    if not logging.getLogger().handlers:
+        logging.basicConfig(
+            level=getattr(logging, log_level),
+            format='[%(levelname)s] %(asctime)s |%(name)s| %(message)s'
+        )
+        
+        # Set PyMongo's logger to WARNING level to reduce noise
+        logging.getLogger('pymongo').setLevel(logging.WARNING)
+        logging.getLogger('pymongo.topology').setLevel(logging.WARNING)
+        
+        # Set Kafka's logger to WARNING level
+        logging.getLogger('confluent_kafka').setLevel(logging.WARNING)
+        
+        # Set Uvicorn's logger to WARNING level
+        logging.getLogger('uvicorn').setLevel(logging.WARNING)
+        logging.getLogger('uvicorn.access').setLevel(logging.WARNING)
     
-    # Set PyMongo's logger to WARNING level to reduce noise
-    logging.getLogger('pymongo').setLevel(logging.WARNING)
-    logging.getLogger('pymongo.topology').setLevel(logging.WARNING)
-    
-    # Set Kafka's logger to WARNING level
-    logging.getLogger('confluent_kafka').setLevel(logging.WARNING)
-    
-    # Set Uvicorn's logger to WARNING level
-    logging.getLogger('uvicorn').setLevel(logging.WARNING)
-    logging.getLogger('uvicorn.access').setLevel(logging.WARNING)
-    
-    return logging.getLogger(__name__)
+    return logging.getLogger(name)
 
-logger = setup_logging() 
+# Create a logger for the config module itself
+logger = get_logger(__name__) 

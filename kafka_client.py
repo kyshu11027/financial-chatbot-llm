@@ -1,6 +1,8 @@
 from confluent_kafka import Consumer, Producer
 import json
-from config import KAFKA_CONFIG, USER_MESSAGE_TOPIC, AI_RESPONSE_TOPIC, GROUP_ID, logger
+from config import KAFKA_CONFIG, USER_MESSAGE_TOPIC, AI_RESPONSE_TOPIC, GROUP_ID, get_logger
+
+logger = get_logger(__name__)
 
 class KafkaClient:
     def __init__(self):
