@@ -25,7 +25,11 @@ MESSAGE_COLLECTION_NAME = "messages"
 
 # OpenAI Configuration
 OPENAI_KEY = os.getenv('OPENAI_API_KEY')
-OPENAI_MODEL_NAME = "gpt-4-turbo"
+OPENAI_MODEL_NAME = os.getenv('OPENAI_MODEL_NAME')
+
+# Google Gemini Configuration
+GEMINI_KEY = os.getenv('GEMINI_API_KEY')
+GEMINI_MODEL_NAME = os.getenv('GEMINI_MODEL')
 
 def get_logger(name):
     """
