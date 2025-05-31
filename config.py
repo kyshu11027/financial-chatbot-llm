@@ -6,11 +6,11 @@ load_dotenv()
 
 # Kafka Configuration
 KAFKA_CONFIG = {
-    'bootstrap.servers': os.getenv('KAFKA_BOOTSTRAP_SERVERS'),
+    'bootstrap.servers': os.getenv('KAFKA_SERVER'),
     'security.protocol': 'SASL_SSL',
     'sasl.mechanisms': 'PLAIN',
-    'sasl.username': os.getenv('KAFKA_API_KEY'),
-    'sasl.password': os.getenv('KAFKA_API_SECRET'),
+    'sasl.username': os.getenv('KAFKA_USERNAME'),
+    'sasl.password': os.getenv('KAFKA_PASSWORD'),
 }
 
 # Kafka Topics

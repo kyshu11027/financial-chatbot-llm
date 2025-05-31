@@ -35,7 +35,7 @@ class Database:
                     'amount': t['amount'],
                     'name': t['name'],
                     'merchant': t.get('merchantname', ''),
-                    'categories': t.get('category') or [],
+                    'category': t.get('category') or [],
                     'pending': t['pending'],
                 })
 
@@ -71,7 +71,7 @@ class Database:
             for t in transactions:
                 context += f"""
                     Transaction {t['transaction_id']}: {t['name']} at {t['merchant']} on {t['date']} for ${t['amount']}. 
-                    Categories: {', '.join(t['categories'])}. 
+                    Category: {t['category']}. 
                     Pending: {t['pending']}\n
                 """
 
