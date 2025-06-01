@@ -6,11 +6,11 @@ load_dotenv()
 
 # Kafka Configuration
 KAFKA_CONFIG = {
-    'bootstrap.servers': os.getenv('KAFKA_SERVER'),
+    'bootstrap.servers': os.getenv('KAFKA_SERVER', ''),
     'security.protocol': 'SASL_SSL',
     'sasl.mechanisms': 'PLAIN',
-    'sasl.username': os.getenv('KAFKA_USERNAME'),
-    'sasl.password': os.getenv('KAFKA_PASSWORD'),
+    'sasl.username': os.getenv('KAFKA_USERNAME', ''),
+    'sasl.password': os.getenv('KAFKA_PASSWORD', ''),
 }
 
 # Kafka Topics
@@ -19,17 +19,17 @@ AI_RESPONSE_TOPIC = "ai_response"
 GROUP_ID = "message_consumer"
 
 # MongoDB Configuration
-MONGODB_URI = os.getenv("MONGODB_URI")
+MONGODB_URI = os.getenv('MONGODB_URI', '')
 CONTEXT_COLLECTION_NAME = "contexts"
 MESSAGE_COLLECTION_NAME = "messages"
 
 # OpenAI Configuration
-OPENAI_KEY = os.getenv('OPENAI_API_KEY')
-OPENAI_MODEL_NAME = os.getenv('OPENAI_MODEL_NAME')
+OPENAI_KEY = os.getenv('OPENAI_API_KEY', '')
+OPENAI_MODEL_NAME = os.getenv('OPENAI_MODEL_NAME', '')
 
 # Google Gemini Configuration
-GEMINI_KEY = os.getenv('GEMINI_API_KEY')
-GEMINI_MODEL_NAME = os.getenv('GEMINI_MODEL')
+GEMINI_KEY = os.getenv('GEMINI_API_KEY', '')
+GEMINI_MODEL_NAME = os.getenv('GEMINI_MODEL', '')
 
 def get_logger(name):
     """

@@ -27,8 +27,8 @@ async def lifespan(app: FastAPI):
     kafka.close()
 
 app = FastAPI(
-    title="Finance Chatbot API",
-    description="A FastAPI backend for the finance chatbot application",
+    title="Finance Chatbot LLM Worker",
+    description="A python worker for processing LLM requests",
     version="1.0.0",
     lifespan=lifespan
 )

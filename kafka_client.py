@@ -40,6 +40,9 @@ class KafkaClient:
             raise
 
     def poll_message(self):
+        if self.consumer is None:
+            logger.error("Kafka consumer is not initialized.")
+            return None
         try:
             msg = self.consumer.poll(0.1)  # Reduced timeout to 100ms to be more responsive
             if msg is None:
