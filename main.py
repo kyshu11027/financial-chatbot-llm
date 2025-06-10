@@ -6,6 +6,9 @@ from config import get_logger, AI_RESPONSE_TOPIC
 from database import Database
 from kafka_client import KafkaClient
 from llm_service import LLMService
+from llm_agent import LLMAgent  # Assuming you have an LLMAgent class defined
+from pydantic import BaseModel
+
 
 logger = get_logger(__name__)
 
@@ -17,6 +20,7 @@ with open('system_prompt.txt', 'r') as file:
 db = Database()
 kafka = KafkaClient()
 llm_service = LLMService()
+llm_agent = LLMAgent()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -36,6 +40,16 @@ app = FastAPI(
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+
+class MessagePayload(BaseModel):
+    message: str
+    user_id: str
+
+@app.post("/process_message")
+async def process_message_endpoint(payload: MessagePayload):
+    response = await llm_agent.query(payload.message, payload.user_id, [])
+    return {"response": response}
 
 async def process_message(message):
     # Parse the message object

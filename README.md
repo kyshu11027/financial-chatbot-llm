@@ -22,7 +22,7 @@ pip install -r requirements.txt
 To start the server, run:
 
 ```bash
-gunicorn -c gunicorn.conf.py main:app
+LOG_LEVEL=DEBUG gunicorn main:app --workers 6 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --log-level error
 ```
 
 The server will start at `http://localhost:8000`
