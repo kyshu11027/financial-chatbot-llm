@@ -6,7 +6,7 @@ from config import get_logger, AI_RESPONSE_TOPIC
 from database import Database
 from kafka_client import KafkaClient
 from llm_service import LLMService
-from llm_agent import LLMAgent  # Assuming you have an LLMAgent class defined
+from llm_agent import LLMAgent
 from pydantic import BaseModel
 
 
@@ -43,13 +43,16 @@ async def health_check():
 
 
 class MessagePayload(BaseModel):
+    conversation_id:str
     message: str
     user_id: str
 
 @app.post("/process_message")
 async def process_message_endpoint(payload: MessagePayload):
-    response = await llm_agent.query(payload.message, payload.user_id, [])
-    return {"response": response}
+    user_context = await db.get_context_no_transactions(payload.conversation_id)
+    chat_history = await db.get_history(payload.conversation_id)
+    response = await llm_agent.query(payload.message, payload.user_id, user_context, chat_history)
+    return response
 
 async def process_message(message):
     # Parse the message object
