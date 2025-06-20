@@ -90,7 +90,7 @@ class Database:
                 if monthly_expense['description'] != "":
                     context += f'Description: {monthly_expense['description']}'
                     
-            return context
+            return context, context_doc.get('user_id', None)
         except Exception as e:
             logger.error(f"Error retrieving context for conversation_id {conversation_id}: {e}")
             raise

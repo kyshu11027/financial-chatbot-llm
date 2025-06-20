@@ -1,4 +1,4 @@
-from typing import TypedDict, List, Optional, Literal
+from typing import TypedDict, List, Optional, Literal, AsyncGenerator
 from langgraph.graph import StateGraph, END
 from langchain_core.messages import AIMessage, ToolCall, BaseMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -197,3 +197,57 @@ class LLMAgent:
         
         logger.info(f"Query completed successfully")
         return result
+    
+    async def stream_with_status(self, user_query: str, user_id: str, user_context: str = "", chat_history: List = []) -> AsyncGenerator[dict, None]:
+        """Stream with detailed status updates and final response streaming"""
+        logger.info(f"Processing query with status streaming for user {user_id}: {user_query}")
+        
+        yield {"type": "status", "message": "Starting query processing..."}
+        
+        initial_state: AgentState = {
+            'user_query': user_query,
+            'user_id': user_id,
+            'tool_calls': deque(),
+            'user_context': user_context,
+            'chat_history': chat_history,
+            'retrieved_transactions': [],
+            'final_response': None
+        }
+        
+        yield {"type": "status", "message": "Analyzing query to determine if transaction data is needed..."}
+        current_state = self._decide_retrieval_node(initial_state)
+        
+        if self._should_retrieve(current_state) == "retrieve":
+            yield {"type": "status", "message": "Retrieving relevant transaction data..."}
+            current_state = self._retrieve_data_node(current_state)
+            yield {
+                "type": "retrieval_complete", 
+                "count": len(current_state['retrieved_transactions']),
+                "message": f"Retrieved {len(current_state['retrieved_transactions'])} transactions"
+            }
+        else:
+            yield {"type": "status", "message": "No transaction data retrieval needed"}
+        
+        yield {"type": "status", "message": "Generating response..."}
+        
+        context = f"{current_state['user_context']}\n"
+        if current_state['retrieved_transactions']:
+            context += "Retrieved Transaction Data:\n" + "\n".join(current_state['retrieved_transactions'])
+
+        system_prompt = f"The current date is {date.today().isoformat()}.\n\n{SYSTEM_PROMPT}"
+        
+        chain = self.get_response_chain()
+        
+        # Stream the final response
+        async for chunk in chain.astream({
+            "system_prompt": system_prompt,
+            "context": context,
+            "chat_history": current_state['chat_history'],
+            "input": current_state['user_query']
+        }):
+            if hasattr(chunk, 'content') and chunk.content:
+                yield {"type": "response_chunk", "content": chunk.content}
+        
+        yield {"type": "complete", "message": "Query processing completed"}
+        logger.info("Status streaming completed")
+    
