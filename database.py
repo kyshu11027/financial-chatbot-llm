@@ -90,6 +90,53 @@ class Database:
                 if monthly_expense['description'] != "":
                     context += f'Description: {monthly_expense['description']}'
                     
+            return context, context_doc.get('user_id', None)
+        except Exception as e:
+            logger.error(f"Error retrieving context for conversation_id {conversation_id}: {e}")
+            raise
+
+
+    async def get_context_no_transactions(self, conversation_id):
+        try:
+            context_doc = self.context_collection.find_one({"conversation_id": conversation_id})
+            if not context_doc:
+                raise Exception(f"No context found for conversation_id: {conversation_id}")
+
+            accounts = []
+            for a in context_doc.get('accounts', []): 
+                balance = a.get('balances', {})
+                normalized_balance = {
+                    'available': balance.get('available', None),
+                    'current': balance.get('current', 0.0),
+                    'limit': balance.get('limit', None),
+                    'iso_currency_code': balance.get('iso_currency_code', ''),
+                }
+
+                normalized_account = {
+                    'account_id': a.get('account_id', ''),
+                    'balances': normalized_balance,
+                    'mask': a.get('mask', ''),
+                    'name': a.get('name', 'Unnamed Account'),
+                    'official_name': a.get('official_name', 'Unnamed Account'),
+                    'subtype': a.get('subtype', ''),
+                    'type': a.get('type', ''),
+                }
+                accounts.append(normalized_account)
+
+            # Format context
+            context = f"My name is {context_doc['name']}.\nI make {context_doc['income']} dollars a month.\nI want to save {context_doc['savings_goal']} a month.\n\n"
+
+            context += "Here is a list of my current account balances:\n"
+            for account in accounts:
+                context += f"{account['official_name']} : {account['balances']['current']} {account['balances']['iso_currency_code']}\n"
+
+            context += "Here is a list of my recurring monthly expenses:\n"
+            for monthly_expense in context_doc['additional_monthly_expenses']:
+                context += f"Name: {monthly_expense['name']} | Amount: {monthly_expense['amount']}"
+                if monthly_expense['description'] != "":
+                    context += f' | Description: {monthly_expense['description']}'
+                context += "\n"
+                    
             return context
         except Exception as e:
             logger.error(f"Error retrieving context for conversation_id {conversation_id}: {e}")

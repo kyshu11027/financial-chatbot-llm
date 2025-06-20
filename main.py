@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 from contextlib import asynccontextmanager
 import asyncio
 import json
@@ -6,6 +7,10 @@ from config import get_logger, AI_RESPONSE_TOPIC
 from database import Database
 from kafka_client import KafkaClient
 from llm_service import LLMService
+from llm_agent import LLMAgent
+from pydantic import BaseModel
+from typing import AsyncGenerator
+
 
 logger = get_logger(__name__)
 
@@ -17,6 +22,7 @@ with open('system_prompt.txt', 'r') as file:
 db = Database()
 kafka = KafkaClient()
 llm_service = LLMService()
+llm_agent = LLMAgent()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -48,27 +54,51 @@ async def process_message(message):
 
     try:
         # Get context and chat history
-        context = await db.get_context(conversation_id)
+        context, user_id = await db.get_context(conversation_id)
         chat_history = await db.get_history(conversation_id)
     except Exception as e:
         logger.error(f"Error retrieving context or history for conversation {conversation_id}: {e}")
         return
 
     try:
-        response_stream = await llm_service.process_message(msg, context, chat_history, SYSTEM_PROMPT)
-
-        for chunk in response_stream:
-            chunk_text = chunk.text()
-            full_message += chunk_text
-            small_chunk = {
-                **message_value,
-                "message": chunk_text,
-                "last_message": False,
-                "error": False,
-                "sender": "AIMessage"
-            }
-            kafka.produce_message(AI_RESPONSE_TOPIC, conversation_id, small_chunk)
-            logger.debug(f"Processed chunk: {chunk_text}")
+        async for update in llm_agent.stream_with_status(
+            msg, 
+            user_id, 
+            context, 
+            chat_history
+        ):
+            
+            # Handle different types of updates
+            if update["type"] == "response_chunk":
+                # This is equivalent to your chunk.text()
+                chunk_text = update["content"]
+                full_message += chunk_text
+                
+                # Create the small chunk for Kafka (following your pattern)
+                small_chunk = {
+                    **message_value,
+                    "message": chunk_text,
+                    "last_message": False,
+                    "error": False,
+                    "sender": "AIMessage",
+                    "type": "response_chunk"
+                }
+                
+                # Send to Kafka
+                kafka.produce_message(AI_RESPONSE_TOPIC, conversation_id, small_chunk)
+                logger.debug(f"Processed chunk: {chunk_text}")
+                
+            elif update["type"] == "complete":
+                # Send final message to Kafka indicating completion
+                final_chunk = {
+                    **message_value,
+                    "last_message": True, 
+                    "error": False,
+                    "sender": "AIMessage",
+                    "type": "complete"
+                }
+                kafka.produce_message(AI_RESPONSE_TOPIC, conversation_id, final_chunk)
+                logger.info(f"Complete message sent to Kafka: {full_message}")        
 
     except Exception as e:
         logger.error(f"Error streaming LLM response: {e}")
@@ -82,21 +112,7 @@ async def process_message(message):
         kafka.produce_error_message(AI_RESPONSE_TOPIC, conversation_id, error_chunk)
         return
 
-    # Send final empty message signaling "done"
-    final_chunk = {
-        **message_value,
-        "message": "",
-        "last_message": True,
-        "error": False,
-        "sender": "AIMessage"
-    }
-
-    try:
-        kafka.produce_message(AI_RESPONSE_TOPIC, conversation_id, final_chunk)
-        logger.debug("Queued final chunk to Kafka")
-    except Exception as e:
-        logger.error(f"Error sending final message to Kafka: {e}")
-
+   
     try:
         await db.save_ai_message(conversation_id=conversation_id, message=full_message)
         logger.info(f"Message saved to DB for conversation {conversation_id}")

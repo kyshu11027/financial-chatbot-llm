@@ -26,10 +26,16 @@ MESSAGE_COLLECTION_NAME = "messages"
 # OpenAI Configuration
 OPENAI_KEY = os.getenv('OPENAI_API_KEY', '')
 OPENAI_MODEL_NAME = os.getenv('OPENAI_MODEL_NAME', '')
+OPENAI_EMBEDDINGS_MODEL_NAME = os.getenv('OPENAI_EMBEDDINGS_MODEL_NAME', '')
 
 # Google Gemini Configuration
 GEMINI_KEY = os.getenv('GEMINI_API_KEY', '')
 GEMINI_MODEL_NAME = os.getenv('GEMINI_MODEL', '')
+
+# Qdrant Configuration
+QDRANT_URL = os.getenv('QDRANT_URL', '')
+QDRANT_API_KEY = os.getenv('QDRANT_API_KEY', '')
+QDRANT_COLLECTION_NAME = "transactions"
 
 def get_logger(name):
     """
