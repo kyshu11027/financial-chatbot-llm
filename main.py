@@ -70,7 +70,6 @@ async def process_message(message):
             
             # Handle different types of updates
             if update["type"] == "response_chunk":
-                # This is equivalent to your chunk.text()
                 chunk_text = update["content"]
                 full_message += chunk_text
                 
