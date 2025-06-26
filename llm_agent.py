@@ -192,7 +192,8 @@ class LLMAgent:
         # Return results
         result = {
             'response': final_state['final_response'],
-            'retrieved_transactions_count': len(final_state['retrieved_transactions'])
+            'retrieved_transactions_count': len(final_state['retrieved_transactions']),
+            'state': final_state,
         }
         
         logger.info(f"Query completed successfully")

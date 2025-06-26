@@ -1,5 +1,4 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi import FastAPI
 from contextlib import asynccontextmanager
 import asyncio
 import json
@@ -9,8 +8,6 @@ from kafka_client import KafkaClient
 from llm_service import LLMService
 from llm_agent import LLMAgent
 from pydantic import BaseModel
-from typing import AsyncGenerator
-
 
 logger = get_logger(__name__)
 

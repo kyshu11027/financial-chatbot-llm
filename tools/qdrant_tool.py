@@ -42,8 +42,8 @@ class RetrievalIntent(BaseModel):
     user_id: str = Field(
         description="The ID of the user whose transactions to retrieve"
     )
-    num_transactions: int = Field(
-        default=10,
+    num_transactions: Optional[int] = Field(
+        default=None,
         description="Number of transactions to retrieve (between 1 and 50)",
         ge=1,
         le=50
@@ -141,10 +141,12 @@ def retrieve_transactions(user_id: str, num_transactions: int, time_period_days:
         logger.debug(f"Query vector shape: {len(query_vector)}")
         logger.debug(f"Search filter: {search_filter}")
         
+        limit = num_transactions if num_transactions is not None else 10000
+
         search_result = client.query_points(
             collection_name=QDRANT_COLLECTION_NAME,
             query=query_vector,  # This is required for vector search
-            limit=num_transactions,
+            limit=limit,
             search_params=search_params,
             query_filter=search_filter
         ).points
