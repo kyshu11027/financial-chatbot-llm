@@ -25,6 +25,10 @@ class Database:
             context_doc = self.context_collection.find_one({"conversation_id": conversation_id})
             if not context_doc:
                 raise Exception(f"No context found for conversation_id: {conversation_id}")
+            
+            user_id = context_doc.get('user_id', '')
+            if not user_id:
+                raise Exception(f"No user_id found in context for conversation_id: {conversation_id}")
 
             accounts = []
             for a in context_doc.get('accounts', []): 
@@ -61,7 +65,7 @@ class Database:
                     context += f' | Description: {monthly_expense['description']}'
                 context += "\n"
                     
-            return context
+            return context, user_id
         except Exception as e:
             logger.error(f"Error retrieving context for conversation_id {conversation_id}: {e}")
             raise
