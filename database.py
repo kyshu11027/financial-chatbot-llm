@@ -30,8 +30,9 @@ class Database:
             if not user_id:
                 raise Exception(f"No user_id found in context for conversation_id: {conversation_id}")
 
-            accounts = []
-            for a in context_doc.get('accounts', []): 
+            accounts = [] 
+            accounts_context = context_doc.get('accounts') if context_doc.get('accounts') != None else []
+            for a in accounts_context: 
                 balance = a.get('balances', {})
                 normalized_balance = {
                     'available': balance.get('available', None),
@@ -59,7 +60,8 @@ class Database:
                 context += f"{account['official_name']} : {account['balances']['current']} {account['balances']['iso_currency_code']}\n"
 
             context += "Here is a list of my recurring monthly expenses:\n"
-            for monthly_expense in context_doc['additional_monthly_expenses']:
+            monthly_expenses_context = context_doc.get('additional_monthly_expenses') if context_doc.get('additional_monthly_expenses') != None else []
+            for monthly_expense in monthly_expenses_context:
                 context += f"Name: {monthly_expense['name']} | Amount: {monthly_expense['amount']}"
                 if monthly_expense['description'] != "":
                     context += f' | Description: {monthly_expense['description']}'
