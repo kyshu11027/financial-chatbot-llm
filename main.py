@@ -110,7 +110,7 @@ async def process_message(message):
 
    
     try:
-        await db.save_ai_message(conversation_id=conversation_id, message=full_message)
+        await db.save_ai_message(conversation_id=conversation_id, message=full_message, user_id=user_id)
         logger.info(f"Message saved to DB for conversation {conversation_id}")
     except Exception as e:
         logger.error(f"Error saving AI message to DB: {e}")

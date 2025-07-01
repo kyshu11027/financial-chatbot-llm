@@ -90,11 +90,12 @@ class Database:
             logger.error(f"Error retrieving history for conversation_id {conversation_id}: {e}")
             raise
 
-    async def save_ai_message(self, conversation_id, message):
+    async def save_ai_message(self, conversation_id, message, user_id):
         try:
             self.messages_collection.insert_one({
                 "conversation_id": conversation_id,
                 "sender": "AIMessage",
+                "user_id": user_id,
                 "message": message,
                 "timestamp": int(time.time())
             })
