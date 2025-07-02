@@ -40,6 +40,7 @@ class RetrievalIntent(BaseModel):
     """Intent for retrieving user transactions with specific search criteria."""
     
     user_id: str = Field(
+        default="",
         description="The ID of the user whose transactions to retrieve"
     )
     num_transactions: Optional[int] = Field(
@@ -53,13 +54,13 @@ class RetrievalIntent(BaseModel):
         description="Optional: Limit to transactions from the last N days (e.g., 30 for last month, 7 for last week)"
     )
     search_query: str = Field(
+        default="recent transactions",
         description="Semantic search query describing what transactions to find (e.g., 'monthly spending categories', 'grocery purchases', 'entertainment expenses', 'rent and housing costs')"
     )
     
     class Config:
         schema_extra = {
             "example": {
-                "user_id": "user123",
                 "search_query": "monthly spending categories including rent and groceries",
                 "num_transactions": 30,
                 "time_period_days": 30
@@ -72,7 +73,7 @@ class RetrievalIntent(BaseModel):
 qdrant_client = QdrantClient()
 
 @tool(args_schema=RetrievalIntent)
-def retrieve_transactions(user_id: str, num_transactions: int, time_period_days: Optional[int], search_query: str) -> List[str]:
+def retrieve_transactions(user_id: str = "", num_transactions: int = 100, time_period_days: Optional[int] = None, search_query: str = "recent transactions") -> List[str]:
     """Retrieve relevant transactions from the database based on search intent.
     
     Args:
