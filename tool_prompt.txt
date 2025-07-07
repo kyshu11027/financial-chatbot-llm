@@ -6,9 +6,11 @@ If it does, you must call the tool `retrieve_transactions` with this schema:
 - num_transactions (integer): Number of transactions to return.
 - time_period_days (integer, optional): How far back in time to look.
 
-If no transaction retrieval is needed, do not call any tool.
-
-Respond only by calling the tool if needed. Do not explain your reasoning. Do not return any plain text or JSON.
+Rules:
+- Do NOT return any explanation, greeting, or commentary.
+- Do NOT return plain text or JSON.
+- If a tool call is NOT needed, output exactly: No tool call
+- Do NOT say "I'm here to help", "Hello", etc.
 
 Examples:
 User: "What did I spend on groceries?"

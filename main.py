@@ -7,7 +7,7 @@ from database import Database
 from kafka_client import KafkaClient
 from llm_service import LLMService
 from llm_agent import LLMAgent
-from pydantic import BaseModel
+# from pydantic import BaseModel
 
 logger = get_logger(__name__)
 
@@ -35,6 +35,18 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# class MessagePayload(BaseModel):
+#     conversation_id:str
+#     message: str
+#     user_id: str
+
+# @app.post("/process_message")
+# async def process_message_endpoint(payload: MessagePayload):
+#     user_context, _ = await db.get_context(payload.conversation_id)
+#     chat_history = await db.get_history(payload.conversation_id)
+#     response = await llm_agent.query(payload.message, payload.user_id, user_context, chat_history)
+#     return response
 
 @app.get("/health")
 async def health_check():
