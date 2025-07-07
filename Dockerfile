@@ -13,7 +13,6 @@ RUN apt-get update && \
         libpq-dev \
         git \
         curl \
-        wget \
         && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
@@ -32,8 +31,9 @@ USER appuser
 EXPOSE 8000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --method=GET --no-verbose --tries=1 http://localhost:8000/health || exit 1
+HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
+  CMD curl --fail http://localhost:8000/health || exit 1
+
 
 # Set environment variables for production
 ENV GUNICORN_CMD_ARGS="--workers 3 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --log-level error"
