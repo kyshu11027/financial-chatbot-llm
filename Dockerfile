@@ -23,12 +23,16 @@ RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application code
 COPY . .
 
-# (Optional) Create a non-root user for security
+# Create a non-root user for security
 RUN useradd -m appuser
 USER appuser
 
 # Expose the port FastAPI will run on
 EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget --method=GET --no-verbose --tries=1 http://localhost:8000/health || exit 1
 
 # Set environment variables for production
 ENV GUNICORN_CMD_ARGS="--workers 3 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --log-level error"
