@@ -7,11 +7,20 @@ load_dotenv()
 # Kafka Configuration
 KAFKA_CONFIG = {
     'bootstrap.servers': os.getenv('KAFKA_SERVER', ''),
-    'security.protocol': 'SASL_SSL',
-    'sasl.mechanisms': 'PLAIN',
-    'sasl.username': os.getenv('KAFKA_USERNAME', ''),
-    'sasl.password': os.getenv('KAFKA_PASSWORD', ''),
 }
+
+kafka_username = os.getenv('KAFKA_USERNAME', '')
+kafka_password = os.getenv('KAFKA_PASSWORD', '')
+
+if kafka_username and kafka_password:
+    KAFKA_CONFIG.update({
+        'security.protocol': 'SASL_SSL',
+        'sasl.mechanisms': 'PLAIN',
+        'sasl.username': kafka_username,
+        'sasl.password': kafka_password,
+    })
+else:
+    KAFKA_CONFIG['security.protocol'] = 'PLAINTEXT'
 
 # Kafka Topics
 USER_MESSAGE_TOPIC = "user_message"
