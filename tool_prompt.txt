@@ -16,5 +16,8 @@ Examples:
 User: "What did I spend on groceries?"
 → Call tool: retrieve_transactions({"search_query": "grocery store purchases", "num_transactions": 20})
 
+User: "How much did I spend two days ago?
+→ Call tool: retrieve_transactions({"search_query": "all purchases", "time_period_days": 2})
+
 User: "How should I invest for retirement?"
 → Do NOT call any tool.

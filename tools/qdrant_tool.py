@@ -45,9 +45,9 @@ class RetrievalIntent(BaseModel):
     )
     num_transactions: Optional[int] = Field(
         default=None,
-        description="Number of transactions to retrieve (between 1 and 50)",
+        description="Optional: Number of transactions to retrieve (between 1 and 500). If not specified, defaults to 10000.",
         ge=1,
-        le=50
+        le=10000
     )
     time_period_days: Optional[int] = Field(
         default=None,
@@ -62,7 +62,7 @@ class RetrievalIntent(BaseModel):
         schema_extra = {
             "example": {
                 "search_query": "monthly spending categories including rent and groceries",
-                "num_transactions": 30,
+                "num_transactions": None,
                 "time_period_days": 30
             }
         }
@@ -73,7 +73,7 @@ class RetrievalIntent(BaseModel):
 qdrant_client = QdrantClient()
 
 @tool(args_schema=RetrievalIntent)
-def retrieve_transactions(user_id: str = "", num_transactions: int = 100, time_period_days: Optional[int] = None, search_query: str = "recent transactions") -> List[str]:
+def retrieve_transactions(user_id: str = "", num_transactions: Optional[int] = None, time_period_days: Optional[int] = None, search_query: str = "recent transactions") -> List[str]:
     """Retrieve relevant transactions from the database based on search intent.
     
     Args:
