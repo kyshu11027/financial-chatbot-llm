@@ -25,5 +25,5 @@ jobs:
         docker buildx build \
           --platform linux/amd64 \
           --tag kevin11027/financial-chatbot:llm \
-          --tag kevin11027/financial-chatbot:llm-$({{ github.sha}} | cut -c 1-7) \
+          --tag kevin11027/financial-chatbot:llm-$(echo {{ github.sha}} | cut -c 1-7) \
           --push .
