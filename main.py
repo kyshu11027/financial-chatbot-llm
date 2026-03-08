@@ -106,7 +106,8 @@ async def process_message(message):
                     "type": "complete"
                 }
                 kafka.produce_message(AI_RESPONSE_TOPIC, conversation_id, final_chunk)
-                logger.info(f"Complete message sent to Kafka: {full_message}")        
+                logger.info(f"Complete message sent to Kafka for conversation {conversation_id}")
+                logger.debug(f"Complete message: {full_message}")        
 
     except Exception as e:
         logger.error(f"Error streaming LLM response: {e}")
